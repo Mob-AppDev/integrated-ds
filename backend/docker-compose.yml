@@ -1,0 +1,54 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: devsync-postgres
+    environment:
+      POSTGRES_DB: devsync
+      POSTGRES_USER: devsync
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - devsync-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: devsync-redis
+    ports:
+      - "6379:6379"
+    networks:
+      - devsync-network
+
+  app:
+    build: .
+    container_name: devsync-backend
+    depends_on:
+      - postgres
+      - redis
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=devsync
+      - DB_USERNAME=devsync
+      - DB_PASSWORD=password
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - JWT_SECRET=mySecretKey123456789012345678901234567890
+    ports:
+      - "8080:8080"
+    networks:
+      - devsync-network
+    volumes:
+      - ./firebase-service-account.json:/app/firebase-service-account.json
+
+volumes:
+  postgres_data:
+
+networks:
+  devsync-network:
+    driver: bridge
